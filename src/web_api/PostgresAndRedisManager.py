@@ -13,6 +13,7 @@ class EnvInfo(BaseModel):
     PG_HOST: str
     PG_USER: str
     PG_PASSWORD: str
+    PG_DATABASE: str
     REDIS_PASSWORD: str
 
 
@@ -32,6 +33,7 @@ class RedisConfig(BaseModel):
 
 
 T = TypeVar("T")
+S = TypeVar("S")
 
 
 def create_instance_from_env(dataclass_type: Type[T]) -> T:
@@ -57,7 +59,7 @@ def create_instance_from_env(dataclass_type: Type[T]) -> T:
         raise
 
 
-def get_env_info(env_info_class: Type[T]) -> T:
+def get_env_info(env_info_class: Type[S]) -> S:
     """環境変数から設定を読み込んで、指定されたデータクラスのインスタンスを作成する
 
     Arguments:
@@ -81,7 +83,7 @@ def get_env_info(env_info_class: Type[T]) -> T:
     ```
     """
     # .envファイルを探して、あれば読み込む
-    load_dotenv()
+    load_dotenv(".env")
     env_info_instance = create_instance_from_env(env_info_class)
     return env_info_instance
 
@@ -189,7 +191,7 @@ class PostgresAndRedisManager:
             # テーブル名が安全であると確認された後、クエリを動的に構築
             query = query_template.format(table_name=table_name)
         else:
-            query = query
+            query = query_template
         # データベースに接続
         with psycopg2.connect(
             dbname=self.postgresConfig.PG_DATABASE,
