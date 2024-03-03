@@ -14,8 +14,9 @@ services:
       - TZ=Asia/Tokyo
     volumes:
       - db_vol:/var/lib/postgresql/data
-      - ./conf/postgresql.conf:/var/lib/postgresql/data/postgresql.conf
+      - ./conf/postgresql.conf:/etc/postgresql/postgresql.conf
       - ./log/postgres:/log
+    command: postgres -c 'config_file=/etc/postgresql/postgresql.conf' # PostgreSQLをカスタム設定ファイルで起動
     env_file:
       - .env
 
@@ -36,4 +37,6 @@ services:
 
 volumes:
   db_vol:
+    external: true
   redis_vol:
+    external: true

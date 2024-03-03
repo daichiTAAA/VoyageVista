@@ -1,5 +1,5 @@
 import os
-from typing import Type, TypeVar
+from typing import Optional, Type, TypeVar
 
 from dotenv import load_dotenv
 import psycopg2
@@ -106,7 +106,7 @@ class PostgreAndRedisManager:
         self.allowed_tables = allowed_tables
         self.allowed_tables.append(self.postgresConfig.PG_TABLE)
 
-    def check_database_exists(self):
+    def check_database_exists(self) -> bool:
         with psycopg2.connect(
             dbname="postgres",
             user=self.postgresConfig.PG_USER,
@@ -114,6 +114,7 @@ class PostgreAndRedisManager:
             host=self.postgresConfig.PG_HOST,
             port=self.postgresConfig.PG_PORT,
         ) as conn:
+            conn.autocommit = True  # 自動コミットを有効にする
             with conn.cursor() as cur:
                 # 指定したデータベースが存在するかどうかを確認するSQLクエリ
                 query = "SELECT 1 FROM pg_database WHERE datname = %s;"
@@ -132,24 +133,35 @@ class PostgreAndRedisManager:
                     )
                     return False
 
-    def create_new_database(self):
-        # デフォルトデータベースに接続
-        with psycopg2.connect(
-            dbname="postgres",
-            user=self.postgresConfig.PG_USER,
-            password=self.postgresConfig.PG_PASSWORD,
-            host=self.postgresConfig.PG_HOST,
-            port=self.postgresConfig.PG_PORT,
-        ) as conn:
-            conn.autocommit = True
-            # カーソルを作成
-            with conn.cursor() as cur:
-                # 新しいデータベースを作成（既に存在する場合は不要）
-                query = "CREATE DATABASE %s;"
-                params = (self.postgresConfig.PG_DATABASE,)
-                cur.execute(query, params)
+    def create_new_database(self) -> None:
+        """デフォルトのデータベースに接続して新しいデータベースを作成"""
+        conn: Optional[psycopg2.connection] = None
+        try:
+            conn = psycopg2.connect(
+                dbname="postgres",
+                user=self.postgresConfig.PG_USER,
+                password=self.postgresConfig.PG_PASSWORD,
+                host=self.postgresConfig.PG_HOST,
+                port=self.postgresConfig.PG_PORT,
+            )
+            conn.autocommit = True  # 自動コミットを有効にする
 
-    def query(self, query_template: str, table_name: str = None, params: str = None):
+            with conn.cursor() as cur:
+                cur: psycopg2.cursor
+                # 新しいデータベースを作成（既に存在する場合は不要）
+                # データベース名に特殊文字が含まれていないことを確認し、安全であることを保証する
+                if not self.postgresConfig.PG_DATABASE.isidentifier():
+                    raise ValueError("不正なデータベース名です。")
+                query = f"CREATE DATABASE {self.postgresConfig.PG_DATABASE};"
+                cur.execute(query)
+            print(f"データベース '{self.postgresConfig.PG_DATABASE}' を作成しました。")
+        finally:
+            if conn:
+                conn.close()
+
+    def query(
+        self, query_template: str, table_name: str = None, params: str = None
+    ) -> list[tuple] | None:
         """PostgreSQLにクエリを実行する関数
         プレースホルダーを使用してパラメータ化されたクエリを使用することで、SQLインジェクションを防ぎます。
         ユーザー入力を直接query_templateに挿入することは避けてください。ユーザー入力を使用する場合は、常にSQLクエリのパラメータとして渡し、SQLインジェクション攻撃を防ぐためにプレースホルダーを使用してください。
@@ -188,10 +200,13 @@ class PostgreAndRedisManager:
             conn.autocommit = True
             # カーソルを作成
             with conn.cursor() as cur:
-                # パラメータ化されたクエリを実行
                 cur.execute(query, params)
-                data = cur.fetchall()
-                return data
+                # SELECT文の場合のみfetchallを実行
+                if query.strip().lower().startswith("select"):
+                    data = cur.fetchall()
+                    return data
+                else:
+                    return None
 
     def get_data(
         self,
@@ -199,7 +214,7 @@ class PostgreAndRedisManager:
         query_template: str,
         table_name: str = "",
         params: tuple[str] = (),
-    ):
+    ) -> list[tuple]:
         """キャッシュされたデータを取得する関数。キャッシュが存在しない場合はDBから取得してキャッシュする"""
         # Redisからデータを取得しようとする
         cached_data = self.r.get(key)
@@ -221,6 +236,18 @@ if __name__ == "__main__":
     )
     redisConfig = RedisConfig(REDIS_PASSWORD=env_info.REDIS_PASSWORD)
     manager = PostgreAndRedisManager(postgresConfig, redisConfig)
+    # テーブルを作成する
+    query_template = (
+        "CREATE TABLE {table_name} (id serial PRIMARY KEY, num integer, data varchar);"
+    )
+    table_name = postgresConfig.PG_TABLE
+    manager.query(query_template, table_name)
+    # データを挿入する
+    query_template = "INSERT INTO {table_name} (num, data) VALUES (%s, %s);"
+    table_name = postgresConfig.PG_TABLE
+    params = (100, "abc")
+    manager.query(query_template, table_name, params)
+    # データを取得する
     key = f"{postgresConfig.PG_TABLE}_data"
     query_template = "SELECT * FROM {table_name} LIMIT %s;"
     table_name = postgresConfig.PG_TABLE
