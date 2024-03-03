@@ -1,5 +1,5 @@
 import os
-from typing import Optional, Type, TypeVar
+from typing import Optional, Type, TypeVar, Awaitable, Any
 
 from dotenv import load_dotenv
 import psycopg2
@@ -57,7 +57,7 @@ def create_instance_from_env(dataclass_type: Type[T]) -> T:
         raise
 
 
-def get_env_info(env_info_class: Type[BaseModel]) -> BaseModel:
+def get_env_info(env_info_class: Type[T]) -> T:
     """環境変数から設定を読み込んで、指定されたデータクラスのインスタンスを作成する
 
     Arguments:
@@ -82,7 +82,7 @@ def get_env_info(env_info_class: Type[BaseModel]) -> BaseModel:
     """
     # .envファイルを探して、あれば読み込む
     load_dotenv()
-    env_info_instance: BaseModel = create_instance_from_env(env_info_class)
+    env_info_instance = create_instance_from_env(env_info_class)
     return env_info_instance
 
 
@@ -135,7 +135,6 @@ class PostgreAndRedisManager:
 
     def create_new_database(self) -> None:
         """デフォルトのデータベースに接続して新しいデータベースを作成"""
-        conn: Optional[psycopg2.connection] = None
         try:
             conn = psycopg2.connect(
                 dbname="postgres",
@@ -147,7 +146,6 @@ class PostgreAndRedisManager:
             conn.autocommit = True  # 自動コミットを有効にする
 
             with conn.cursor() as cur:
-                cur: psycopg2.cursor
                 # 新しいデータベースを作成（既に存在する場合は不要）
                 # データベース名に特殊文字が含まれていないことを確認し、安全であることを保証する
                 if not self.postgresConfig.PG_DATABASE.isidentifier():
@@ -160,7 +158,10 @@ class PostgreAndRedisManager:
                 conn.close()
 
     def query(
-        self, query_template: str, table_name: str = None, params: str = None
+        self,
+        query_template: str,
+        table_name: str | None = None,
+        params: tuple[Any, ...] | None = None,
     ) -> list[tuple] | None:
         """PostgreSQLにクエリを実行する関数
         プレースホルダーを使用してパラメータ化されたクエリを使用することで、SQLインジェクションを防ぎます。
@@ -213,8 +214,8 @@ class PostgreAndRedisManager:
         key,
         query_template: str,
         table_name: str = "",
-        params: tuple[str] = (),
-    ) -> list[tuple]:
+        params: tuple[Any, ...] = ("",),
+    ) -> list[tuple[Any, ...]] | Awaitable[Any] | None:
         """キャッシュされたデータを取得する関数。キャッシュが存在しない場合はDBから取得してキャッシュする"""
         # Redisからデータを取得しようとする
         cached_data = self.r.get(key)
@@ -236,21 +237,19 @@ if __name__ == "__main__":
     )
     redisConfig = RedisConfig(REDIS_PASSWORD=env_info.REDIS_PASSWORD)
     manager = PostgreAndRedisManager(postgresConfig, redisConfig)
+
+    table_name = postgresConfig.PG_TABLE
+
     # テーブルを作成する
-    query_template = (
-        "CREATE TABLE {table_name} (id serial PRIMARY KEY, num integer, data varchar);"
-    )
-    table_name = postgresConfig.PG_TABLE
-    manager.query(query_template, table_name)
+    query_template_create = "CREATE TABLE IF NOT EXISTS {table_name} (id serial PRIMARY KEY, num integer, data varchar);"
+    manager.query(query_template_create, table_name)
     # データを挿入する
-    query_template = "INSERT INTO {table_name} (num, data) VALUES (%s, %s);"
-    table_name = postgresConfig.PG_TABLE
-    params = (100, "abc")
-    manager.query(query_template, table_name, params)
+    query_template_insert = "INSERT INTO {table_name} (num, data) VALUES (%s, %s);"
+    params_insert = (100, "abc")
+    manager.query(query_template_insert, table_name, params_insert)
     # データを取得する
     key = f"{postgresConfig.PG_TABLE}_data"
-    query_template = "SELECT * FROM {table_name} LIMIT %s;"
-    table_name = postgresConfig.PG_TABLE
-    params = (10,)
-    data = manager.get_data(key, query_template, table_name, params)
+    query_template_select = "SELECT * FROM {table_name} LIMIT %s;"
+    params_select = (10,)
+    data = manager.get_data(key, query_template_select, table_name, params_select)
     print(data)
