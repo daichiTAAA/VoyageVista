@@ -1,5 +1,5 @@
 import os
-from typing import Optional, Type, TypeVar, Awaitable, Any
+from typing import Type, TypeVar, Awaitable, Any
 
 from dotenv import load_dotenv
 import psycopg2
