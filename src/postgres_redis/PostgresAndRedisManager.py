@@ -86,7 +86,7 @@ def get_env_info(env_info_class: Type[T]) -> T:
     return env_info_instance
 
 
-class PostgreAndRedisManager:
+class PostgresAndRedisManager:
     def __init__(
         self,
         postgresConfig: PostgresConfig,
@@ -236,7 +236,7 @@ if __name__ == "__main__":
         PG_USER=env_info.PG_USER, PG_PASSWORD=env_info.PG_PASSWORD
     )
     redisConfig = RedisConfig(REDIS_PASSWORD=env_info.REDIS_PASSWORD)
-    manager = PostgreAndRedisManager(postgresConfig, redisConfig)
+    manager = PostgresAndRedisManager(postgresConfig, redisConfig)
 
     table_name = postgresConfig.PG_TABLE
 
