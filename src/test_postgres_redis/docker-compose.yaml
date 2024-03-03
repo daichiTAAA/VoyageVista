@@ -2,17 +2,38 @@ version: '3.9'
 
 services:
   pgsql_db:
-    image: postgres:${POSTGRES_VERSION}
-    container_name: ${CONTAINER_NAME}
-    hostname: ${HOSTNAME}
+    image: postgres:${PG_VERSION}
+    container_name: ${PG_CONTAINER_NAME}
+    hostname: ${PG_HOST}
     ports:
       - "5432:5432"
     restart: always
     environment:
-      - POSTGRES_USER=${USER_NAME}
-      - POSTGRES_PASSWORD=${USER_PASS}
+      - POSTGRES_USER=${PG_USER}
+      - POSTGRES_PASSWORD=${PG_PASSWORD}
+      - TZ=Asia/Tokyo
     volumes:
       - db_vol:/var/lib/postgresql/data
+      - ./conf/postgresql.conf:/var/lib/postgresql/data/postgresql.conf
+      - ./log/postgres:/log
+    env_file:
+      - .env
+
+  redis:
+    image: redis:7.2.4-bookworm
+    restart: always
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_vol:/data
+      - ./conf/redis.conf:/usr/local/etc/redis/redis.conf
+      - ./log/redis:/usr/local/etc/redis/log
+    command: redis-server /usr/local/etc/redis/redis.conf # Redisをカスタム設定ファイルで起動
+    env_file:
+      - .env
+    environment:
+      - TZ=Asia/Tokyo
 
 volumes:
   db_vol:
+  redis_vol:

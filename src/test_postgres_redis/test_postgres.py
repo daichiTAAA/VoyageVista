@@ -6,20 +6,21 @@ import psycopg2
 from pydantic import BaseModel, ValidationError, TypeAdapter
 
 
-class Envinfo(BaseModel):
-    POSTGRES_VERSION: str
-    CONTAINER_NAME: str
-    HOSTNAME: str
-    USER_NAME: str
-    USER_PASS: str
+class EnvInfo(BaseModel):
+    PG_VERSION: str
+    PG_CONTAINER_NAME: str
+    PG_HOST: str
+    PG_USER: str
+    PG_PASSWORD: str
 
 
 class PostgresConfig(BaseModel):
-    user: str
-    password: str
-    host: str = "localhost"
-    port: str = "5432"
-    database: str = "test_db"
+    PG_USER: str
+    PG_PASSWORD: str
+    PG_HOST: str = "localhost"
+    PG_PORT: str = "5432"
+    PG_DATABASE: str = "test_db"
+    PG_TABLE: str = "test_table"
 
 
 # .envファイルを探して、あれば読み込む
@@ -51,18 +52,18 @@ def create_instance_from_env(dataclass_type: Type[T]) -> T:
         raise
 
 
-env: Envinfo = create_instance_from_env(Envinfo)
-postresConfig: PostgresConfig = PostgresConfig(
-    user=env.USER_NAME, password=env.USER_PASS
+env: EnvInfo = create_instance_from_env(EnvInfo)
+postgresConfig: PostgresConfig = PostgresConfig(
+    PG_USER=env.PG_USER, PG_PASSWORD=env.PG_PASSWORD
 )
 
 # データベースに接続
 conn = psycopg2.connect(
     dbname="postgres",
-    user=postresConfig.user,
-    password=postresConfig.password,
-    host=postresConfig.host,
-    port=postresConfig.port,
+    user=postgresConfig.PG_USER,
+    password=postgresConfig.PG_PASSWORD,
+    host=postgresConfig.PG_HOST,
+    port=postgresConfig.PG_PORT,
 )
 conn.autocommit = True
 
@@ -70,24 +71,24 @@ conn.autocommit = True
 cur = conn.cursor()
 
 # 新しいデータベースを作成（既に存在する場合は不要）
-# cur.execute("CREATE DATABASE " + postresConfig.database)
+# cur.execute("CREATE DATABASE " + postgresConfig.PG_DATABASE)
 
 # 新しいデータベースに接続
 conn.close()
 conn = psycopg2.connect(
-    dbname=postresConfig.database,
-    user=postresConfig.user,
-    password=postresConfig.password,
-    host=postresConfig.host,
-    port=postresConfig.port,
+    dbname=postgresConfig.PG_DATABASE,
+    user=postgresConfig.PG_USER,
+    password=postgresConfig.PG_PASSWORD,
+    host=postgresConfig.PG_HOST,
+    port=postgresConfig.PG_PORT,
 )
 conn.autocommit = True
 cur = conn.cursor()
 
 # 新しいテーブルを作成
 cur.execute(
-    """
-    CREATE TABLE IF NOT EXISTS test_table (
+    f"""
+    CREATE TABLE IF NOT EXISTS {postgresConfig.PG_TABLE} (
         id SERIAL PRIMARY KEY,
         name VARCHAR(100),
         age INT
@@ -97,8 +98,8 @@ cur.execute(
 
 # テーブルにレコードを挿入
 cur.execute(
-    """
-    INSERT INTO test_table (name, age) VALUES
+    f"""
+    INSERT INTO {postgresConfig.PG_TABLE} (name, age) VALUES
     ('Alice', 30),
     ('Bob', 25),
     ('Charlie', 35)
@@ -106,7 +107,7 @@ cur.execute(
 )
 
 # レコードを取得
-cur.execute("SELECT * FROM test_table")
+cur.execute(f"SELECT * FROM {postgresConfig.PG_TABLE}")
 rows = cur.fetchall()
 for row in rows:
     print(row)

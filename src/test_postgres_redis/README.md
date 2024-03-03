@@ -1,10 +1,12 @@
 * .envを作成し下記を記載する
 ```
-POSTGRES_VERSION=16.2
-CONTAINER_NAME=pgsql_db # お好きに
-HOSTNAME=pgsql-db # お好きに
-USER_NAME=postgres
+PG_VERSION=16.2
+PG_CONTAINER_NAME=pgsql_db # お好きに
+PG_HOST=pgsql-db # お好きに
+PG_PASSWORD=postgres
 USER_PASS=postgres
+
+REDIS_PASSWORD=my_redis_password
 ```
 
 * volumeを作成する
