@@ -1,0 +1,21 @@
+[tool.poetry]
+name = "api"
+version = "0.1.0"
+description = "web api"
+authors = ["DaiichiroNoda <69710300+donachii@users.noreply.github.com>"]
+readme = "README.md"
+
+[tool.poetry.dependencies]
+python = "^3.10"
+sqlalchemy = "^2.0.28"
+fastapi = {extras = ["all"], version = "^0.110.0"}
+passlib = "^1.7.4"
+python-jose = "^3.3.0"
+python-dotenv = "^1.0.1"
+uvicorn = "^0.28.0"
+psycopg2-binary = "^2.9.9"
+
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
