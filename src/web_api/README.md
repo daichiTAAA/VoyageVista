@@ -7,5 +7,6 @@ PG_HOST=pgsql-db
 PG_USER=postgres
 PG_PASSWORD=postgres
 PG_DATABASE=japan_tourism_info
+REDIS_CONTAINER_NAME=redis
 REDIS_PASSWORD=my_redis_password
 ```
