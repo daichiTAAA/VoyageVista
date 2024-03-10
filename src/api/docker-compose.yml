@@ -25,7 +25,10 @@ services:
     environment:
       - TZ=Asia/Tokyo
     volumes:
-      - .:/app
+      - ./main.py:/app/main.py
+      - ./api:/app/api
+      - ./logger.ini:/app/logger.ini
+      - ./log/api:/app/log/api
     ports:
       - "8000:8000"
     depends_on:
