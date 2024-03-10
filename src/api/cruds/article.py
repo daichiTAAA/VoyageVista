@@ -1,55 +1,72 @@
-from sqlalchemy.orm import Session
+from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.future import select
 
 import models, schemas
 
 
-def get_article(db: Session, article_id: int):
-    return db.query(models.Article).filter(models.Article.id == article_id).first()
+async def get_article(db: AsyncSession, article_id: int):
+    result = await db.execute(
+        select(models.Article).filter(models.Article.id == article_id)
+    )
+    return result.scalars().first()
 
 
-def get_articles(db: Session, skip: int = 0, limit: int = 100):
-    return db.query(models.Article).offset(skip).limit(limit).all()
+async def get_articles(db: AsyncSession, skip: int = 0, limit: int = 100):
+    result = await db.execute(select(models.Article).offset(skip).limit(limit))
+    return result.scalars().all()
 
 
-def create_article(db: Session, article: schemas.ArticleCreate):
+async def create_article(db: AsyncSession, article: schemas.ArticleCreate):
     db_article = models.Article(**article.model_dump())
     db.add(db_article)
-    db.commit()
-    db.refresh(db_article)
+    await db.commit()
+    await db.refresh(db_article)
     return db_article
 
 
-def update_article(db: Session, article: schemas.ArticleUpdate, article_id: int):
-    db_article = get_article(db, article_id)
+async def update_article(
+    db: AsyncSession, article: schemas.ArticleUpdate, article_id: int
+):
+    result = await db.execute(
+        select(models.Article).filter(models.Article.id == article_id)
+    )
+    db_article = result.scalars().first()
     if db_article:
-        update_data = article.model_dump(exclude_unset=True)
+        update_data = article.dict(exclude_unset=True)
         for key, value in update_data.items():
             setattr(db_article, key, value)
-        db.commit()
-        db.refresh(db_article)
+        await db.commit()
+        await db.refresh(db_article)
     return db_article
 
 
-def delete_article(db: Session, article_id: int):
-    db_article = get_article(db, article_id)
+async def delete_article(db: AsyncSession, article_id: int):
+    result = await db.execute(
+        select(models.Article).filter(models.Article.id == article_id)
+    )
+    db_article = result.scalars().first()
     if db_article:
-        db.delete(db_article)
-        db.commit()
-    return db_article
+        await db.delete(db_article)
+        await db.commit()
 
 
-def get_article_by_title(db: Session, title: str):
-    return db.query(models.Article).filter(models.Article.title == title).first()
+async def get_article_by_title(db: AsyncSession, title: str):
+    result = await db.execute(
+        select(models.Article).filter(models.Article.title == title)
+    )
+    return result.scalars().first()
 
 
-def search_articles(db: Session, keyword: str, skip: int = 0, limit: int = 100):
-    return (
-        db.query(models.Article)
+async def search_articles(
+    db: AsyncSession, keyword: str, skip: int = 0, limit: int = 100
+):
+    result = await db.execute(
+        select(models.Article)
         .filter(
             models.Article.title.contains(keyword)
             | models.Article.content.contains(keyword)
         )
         .offset(skip)
         .limit(limit)
-        .all()
     )
+    return result.scalars().all()

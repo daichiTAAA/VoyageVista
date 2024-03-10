@@ -1,47 +1,46 @@
 from fastapi import APIRouter, Depends, HTTPException
-from sqlalchemy.orm import Session
+from sqlalchemy.ext.asyncio import AsyncSession
 from typing import List
 
 import cruds, schemas
 from db import SessionLocal
 
-router = APIRouter(
+router_v1 = APIRouter(
     prefix="/cultural_insights",
     tags=["cultural_insights"],
     responses={404: {"description": "Not found"}},
 )
 
 
-def get_db():
-    db = SessionLocal()
-    try:
-        yield db
-    finally:
-        db.close()
+async def get_db():
+    async with SessionLocal() as session:
+        yield session
 
 
-@router.post("/", response_model=schemas.CulturalInsight)
-def create_cultural_insight(
+@router_v1.post("/", response_model=schemas.CulturalInsight)
+async def create_cultural_insight(
     cultural_insight: schemas.CulturalInsightCreate,
     article_id: int,
-    db: Session = Depends(get_db),
+    db: AsyncSession = Depends(get_db),
 ):
-    return cruds.create_cultural_insight(
+    return await cruds.create_cultural_insight(
         db=db, cultural_insight=cultural_insight, article_id=article_id
     )
 
 
-@router.get("/", response_model=List[schemas.CulturalInsight])
-def read_cultural_insights(
-    skip: int = 0, limit: int = 100, db: Session = Depends(get_db)
+@router_v1.get("/", response_model=List[schemas.CulturalInsight])
+async def read_cultural_insights(
+    skip: int = 0, limit: int = 100, db: AsyncSession = Depends(get_db)
 ):
-    cultural_insights = cruds.get_cultural_insights(db, skip=skip, limit=limit)
+    cultural_insights = await cruds.get_cultural_insights(db, skip=skip, limit=limit)
     return cultural_insights
 
 
-@router.get("/{cultural_insight_id}", response_model=schemas.CulturalInsight)
-def read_cultural_insight(cultural_insight_id: int, db: Session = Depends(get_db)):
-    db_cultural_insight = cruds.get_cultural_insight(
+@router_v1.get("/{cultural_insight_id}", response_model=schemas.CulturalInsight)
+async def read_cultural_insight(
+    cultural_insight_id: int, db: AsyncSession = Depends(get_db)
+):
+    db_cultural_insight = await cruds.get_cultural_insight(
         db, cultural_insight_id=cultural_insight_id
     )
     if db_cultural_insight is None:
@@ -49,29 +48,33 @@ def read_cultural_insight(cultural_insight_id: int, db: Session = Depends(get_db
     return db_cultural_insight
 
 
-@router.put("/{cultural_insight_id}", response_model=schemas.CulturalInsight)
-def update_cultural_insight(
+@router_v1.put("/{cultural_insight_id}", response_model=schemas.CulturalInsight)
+async def update_cultural_insight(
     cultural_insight_id: int,
-    cultural_insight: schemas.CulturalInsightCreate,
-    db: Session = Depends(get_db),
+    cultural_insight: schemas.CulturalInsightUpdate,
+    db: AsyncSession = Depends(get_db),
 ):
-    db_cultural_insight = cruds.get_cultural_insight(
+    db_cultural_insight = await cruds.get_cultural_insight(
         db, cultural_insight_id=cultural_insight_id
     )
     if db_cultural_insight is None:
         raise HTTPException(status_code=404, detail="Cultural insight not found")
-    return cruds.update_cultural_insight(
+    return await cruds.update_cultural_insight(
         db=db,
         cultural_insight=cultural_insight,
         cultural_insight_id=cultural_insight_id,
     )
 
 
-@router.delete("/{cultural_insight_id}", response_model=schemas.CulturalInsight)
-def delete_cultural_insight(cultural_insight_id: int, db: Session = Depends(get_db)):
-    db_cultural_insight = cruds.get_cultural_insight(
+@router_v1.delete("/{cultural_insight_id}", response_model=schemas.CulturalInsight)
+async def delete_cultural_insight(
+    cultural_insight_id: int, db: AsyncSession = Depends(get_db)
+):
+    db_cultural_insight = await cruds.get_cultural_insight(
         db, cultural_insight_id=cultural_insight_id
     )
     if db_cultural_insight is None:
         raise HTTPException(status_code=404, detail="Cultural insight not found")
-    return cruds.delete_cultural_insight(db=db, cultural_insight_id=cultural_insight_id)
+    return await cruds.delete_cultural_insight(
+        db=db, cultural_insight_id=cultural_insight_id
+    )

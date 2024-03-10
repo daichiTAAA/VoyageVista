@@ -14,14 +14,14 @@ from routers import (
 
 app = FastAPI()
 
-app.include_router(user.router)
-app.include_router(article.router)
-app.include_router(photo.router)
-app.include_router(translation.router)
-app.include_router(tourist_spot.router)
-app.include_router(restaurant.router)
-app.include_router(feedback.router)
-app.include_router(cultural_insight.router)
+app.include_router(user.router_v1, prefix="/v1")
+app.include_router(article.router_v1, prefix="/v1")
+app.include_router(photo.router_v1, prefix="/v1")
+app.include_router(translation.router_v1, prefix="/v1")
+app.include_router(tourist_spot.router_v1, prefix="/v1")
+app.include_router(restaurant.router_v1, prefix="/v1")
+app.include_router(feedback.router_v1, prefix="/v1")
+app.include_router(cultural_insight.router_v1, prefix="/v1")
 
 
 if __name__ == "__main__":

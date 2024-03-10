@@ -22,6 +22,8 @@ services:
 
   api:
     build: .
+    environment:
+      - TZ=Asia/Tokyo
     volumes:
       - .:/app
     ports:

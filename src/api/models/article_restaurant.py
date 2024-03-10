@@ -10,6 +10,3 @@ class ArticleRestaurant(Base):
     restaurant_id = Column(Integer, ForeignKey("restaurants.id"), primary_key=True)
     created_at = Column(DateTime)
     updated_at = Column(DateTime)
-
-    # articles = relationship("Article", back_populates="restaurants")
-    # restaurants = relationship("Restaurant", back_populates="articles")
