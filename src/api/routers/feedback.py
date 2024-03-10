@@ -4,6 +4,9 @@ from typing import List
 
 import cruds, schemas
 from db import SessionLocal
+from setup_logger import setup_logger
+
+logger, log_decorator = setup_logger(__name__)
 
 router_v1 = APIRouter(
     prefix="/feedbacks",
@@ -41,6 +44,7 @@ async def read_feedbacks(
 async def read_feedback(feedback_id: int, db: AsyncSession = Depends(get_db)):
     db_feedback = await cruds.get_feedback(db, feedback_id=feedback_id)
     if db_feedback is None:
+        logger.error(f"Feedback {feedback_id} not found")
         raise HTTPException(status_code=404, detail="Feedback not found")
     return db_feedback
 
@@ -53,6 +57,7 @@ async def update_feedback(
 ):
     db_feedback = await cruds.get_feedback(db, feedback_id=feedback_id)
     if db_feedback is None:
+        logger.error(f"Feedback {feedback_id} not found")
         raise HTTPException(status_code=404, detail="Feedback not found")
     return await cruds.update_feedback(
         db=db, feedback=feedback, feedback_id=feedback_id
@@ -63,5 +68,6 @@ async def update_feedback(
 async def delete_feedback(feedback_id: int, db: AsyncSession = Depends(get_db)):
     db_feedback = await cruds.get_feedback(db, feedback_id=feedback_id)
     if db_feedback is None:
+        logger.error(f"Feedback {feedback_id} not found")
         raise HTTPException(status_code=404, detail="Feedback not found")
     return await cruds.delete_feedback(db=db, feedback_id=feedback_id)

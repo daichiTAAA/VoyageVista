@@ -4,6 +4,9 @@ from typing import List
 
 import cruds, schemas
 from db import SessionLocal
+from setup_logger import setup_logger
+
+logger, log_decorator = setup_logger(__name__)
 
 router_v1 = APIRouter(
     prefix="/photos",
@@ -38,6 +41,7 @@ async def read_photos(
 async def read_photo(photo_id: int, db: AsyncSession = Depends(get_db)):
     db_photo = await cruds.get_photo(db, photo_id=photo_id)
     if db_photo is None:
+        logger.error(f"Photo {photo_id} not found")
         raise HTTPException(status_code=404, detail="Photo not found")
     return db_photo
 
@@ -48,6 +52,7 @@ async def update_photo(
 ):
     db_photo = await cruds.get_photo(db, photo_id=photo_id)
     if db_photo is None:
+        logger.error(f"Photo {photo_id} not found")
         raise HTTPException(status_code=404, detail="Photo not found")
     return await cruds.update_photo(db=db, photo=photo, photo_id=photo_id)
 
@@ -56,5 +61,6 @@ async def update_photo(
 async def delete_photo(photo_id: int, db: AsyncSession = Depends(get_db)):
     db_photo = await cruds.get_photo(db, photo_id=photo_id)
     if db_photo is None:
+        logger.error(f"Photo {photo_id} not found")
         raise HTTPException(status_code=404, detail="Photo not found")
     return await cruds.delete_photo(db=db, photo_id=photo_id)

@@ -5,6 +5,9 @@ from typing import List
 import cruds
 from db import SessionLocal
 from schemas import TouristSpot as TouristSpotSchema, ArticleTouristSpot
+from setup_logger import setup_logger
+
+logger, log_decorator = setup_logger(__name__)
 
 router_v1 = APIRouter(
     prefix="/tourist_spots",
@@ -36,6 +39,7 @@ async def read_tourist_spots(
 async def read_tourist_spot(tourist_spot_id: int, db: AsyncSession = Depends(get_db)):
     db_tourist_spot = await cruds.get_tourist_spot(db, tourist_spot_id=tourist_spot_id)
     if db_tourist_spot is None:
+        logger.error(f"Tourist spot {tourist_spot_id} not found")
         raise HTTPException(status_code=404, detail="Tourist spot not found")
     return db_tourist_spot
 
@@ -84,6 +88,9 @@ async def delete_link_article_from_tourist_spot(
     if success:
         return {"message": "Association deleted successfully"}
     else:
+        logger.error(
+            f"Association between tourist spot {tourist_spot_id} and article {article_id} not found"
+        )
         raise HTTPException(status_code=404, detail="Association not found")
 
 

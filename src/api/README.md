@@ -11,6 +11,8 @@
     SECRET_KEY = "your-secret-key"
     ALGORITHM = "HS256"
     ACCESS_TOKEN_EXPIRE_MINUTES = 30
+
+    LOGGER_CONFIG_PATH = "logger.ini"
     ```
 
 * volumeを作成する

@@ -4,6 +4,9 @@ from typing import List
 
 import cruds, schemas
 from db import SessionLocal
+from setup_logger import setup_logger
+
+logger, log_decorator = setup_logger(__name__)
 
 router_v1 = APIRouter(
     prefix="/restaurants",
@@ -35,6 +38,7 @@ async def read_restaurants(
 async def read_restaurant(restaurant_id: int, db: AsyncSession = Depends(get_db)):
     db_restaurant = await cruds.get_restaurant(db, restaurant_id=restaurant_id)
     if db_restaurant is None:
+        logger.error(f"Restaurant {restaurant_id} not found")
         raise HTTPException(status_code=404, detail="Restaurant not found")
     return db_restaurant
 
@@ -47,6 +51,7 @@ async def update_restaurant(
 ):
     db_restaurant = await cruds.get_restaurant(db, restaurant_id=restaurant_id)
     if db_restaurant is None:
+        logger.error(f"Restaurant {restaurant_id} not found")
         raise HTTPException(status_code=404, detail="Restaurant not found")
     return await cruds.update_restaurant(
         db=db, restaurant=restaurant, restaurant_id=restaurant_id
@@ -88,6 +93,9 @@ async def delete_link_article_to_restaurant(
     if success:
         return {"message": "Association deleted successfully"}
     else:
+        logger.error(
+            f"Association between restaurant {restaurant_id} and article {article_id} not found"
+        )
         raise HTTPException(status_code=404, detail="Association not found")
 
 
@@ -103,4 +111,7 @@ async def update_association(
     if association:
         return association
     else:
+        logger.error(
+            f"Association between restaurant {restaurant_id} and article {article_id} not found"
+        )
         raise HTTPException(status_code=404, detail="Association not found")
