@@ -77,13 +77,18 @@
    DELETE FROM users WHERE id = 10;
    ```
 
-9. **終了する**
+9. **`users`テーブルを削除する方法**
+   ```sql
+   DROP TABLE IF EXISTS users CASCADE;
+   ```
+
+10. **終了する**
    ```sql
    \q
    exit
    ```
 
-# テーブルをマイグレーションする
+# テーブルをマイグレーションする方法
 1. SERVICE名を確認する
     ```bash
     cd src/api
@@ -94,3 +99,17 @@
     cd src/api
     docker compose exec {SERVICE名} poetry run python -m migrate_db
     ```
+    例：`docker compose exec api poetry run python -m migrate_db`
+
+# テストの実行方法
+* [0010_poetry.md](/docs/0040_要素技術/0020_Poetry/0010_poetry.md)に基づきpoetryをインストールする
+* 下記のコマンドでpoetryを使用して必要なライブラリを仮想環境にインストールし仮想環境を立ち上げる
+  ```bash
+  cd src/api
+  poetry install
+  ```
+* 下記のコマンドでpytestを実行する
+  ```bash
+  cd src/api
+  poetry run pytest
+  ```
