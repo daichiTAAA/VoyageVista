@@ -1,94 +1,88 @@
 from fastapi import APIRouter, Depends, HTTPException
-from sqlalchemy.orm import Session
+from sqlalchemy.ext.asyncio import AsyncSession
 from typing import List
 
 import cruds, schemas
 from db import SessionLocal
 
-router = APIRouter(
+router_v1 = APIRouter(
     prefix="/restaurants",
     tags=["restaurants"],
     responses={404: {"description": "Not found"}},
 )
 
 
-def get_db():
-    db = SessionLocal()
-    try:
-        yield db
-    finally:
-        db.close()
+async def get_db():
+    async with SessionLocal() as session:
+        yield session
 
 
-@router.post("/", response_model=schemas.Restaurant)
-def create_restaurant(
-    restaurant: schemas.RestaurantCreate, db: Session = Depends(get_db)
+@router_v1.post("/", response_model=schemas.Restaurant)
+async def create_restaurant(
+    restaurant: schemas.RestaurantCreate, db: AsyncSession = Depends(get_db)
 ):
-    return cruds.create_restaurant(db=db, restaurant=restaurant)
+    return await cruds.create_restaurant(db=db, restaurant=restaurant)
 
 
-@router.get("/", response_model=List[schemas.Restaurant])
-def read_restaurants(skip: int = 0, limit: int = 100, db: Session = Depends(get_db)):
-    restaurants = cruds.get_restaurants(db, skip=skip, limit=limit)
-    return restaurants
+@router_v1.get("/", response_model=List[schemas.Restaurant])
+async def read_restaurants(
+    skip: int = 0, limit: int = 100, db: AsyncSession = Depends(get_db)
+):
+    return await cruds.get_restaurants(db, skip=skip, limit=limit)
 
 
-@router.get("/{restaurant_id}", response_model=schemas.Restaurant)
-def read_restaurant(restaurant_id: int, db: Session = Depends(get_db)):
-    db_restaurant = cruds.get_restaurant(db, restaurant_id=restaurant_id)
+@router_v1.get("/{restaurant_id}", response_model=schemas.Restaurant)
+async def read_restaurant(restaurant_id: int, db: AsyncSession = Depends(get_db)):
+    db_restaurant = await cruds.get_restaurant(db, restaurant_id=restaurant_id)
     if db_restaurant is None:
         raise HTTPException(status_code=404, detail="Restaurant not found")
     return db_restaurant
 
 
-@router.put("/{restaurant_id}", response_model=schemas.Restaurant)
-def update_restaurant(
+@router_v1.put("/{restaurant_id}", response_model=schemas.Restaurant)
+async def update_restaurant(
     restaurant_id: int,
     restaurant: schemas.RestaurantCreate,
-    db: Session = Depends(get_db),
+    db: AsyncSession = Depends(get_db),
 ):
-    db_restaurant = cruds.get_restaurant(db, restaurant_id=restaurant_id)
+    db_restaurant = await cruds.get_restaurant(db, restaurant_id=restaurant_id)
     if db_restaurant is None:
         raise HTTPException(status_code=404, detail="Restaurant not found")
-    return cruds.update_restaurant(
+    return await cruds.update_restaurant(
         db=db, restaurant=restaurant, restaurant_id=restaurant_id
     )
 
 
-@router.delete("/{restaurant_id}", response_model=schemas.Restaurant)
-def delete_restaurant(restaurant_id: int, db: Session = Depends(get_db)):
-    db_restaurant = cruds.get_restaurant(db, restaurant_id=restaurant_id)
-    if db_restaurant is None:
-        raise HTTPException(status_code=404, detail="Restaurant not found")
-    return cruds.delete_restaurant(db=db, restaurant_id=restaurant_id)
+@router_v1.delete("/{restaurant_id}", response_model=schemas.Restaurant)
+async def delete_restaurant(restaurant_id: int, db: AsyncSession = Depends(get_db)):
+    return await cruds.delete_restaurant(db=db, restaurant_id=restaurant_id)
 
 
-@router.get("/{restaurant_id}/articles", response_model=List[schemas.ArticleRestaurant])
-def read_associated_articles(restaurant_id: int, db: Session = Depends(get_db)):
-    articles = cruds.get_assosicated_articles(db, restaurant_id=restaurant_id)
-    return articles
+@router_v1.get(
+    "/{restaurant_id}/articles", response_model=List[schemas.ArticleRestaurant]
+)
+async def read_associated_articles(
+    restaurant_id: int, db: AsyncSession = Depends(get_db)
+):
+    return await cruds.get_associated_articles(db, restaurant_id=restaurant_id)
 
 
-@router.post(
+@router_v1.post(
     "/{restaurant_id}/articles/{article_id}", response_model=schemas.ArticleRestaurant
 )
-def create_link_article_to_restaurant(
-    restaurant_id: int, article_id: int, db: Session = Depends(get_db)
+async def create_link_article_to_restaurant(
+    restaurant_id: int, article_id: int, db: AsyncSession = Depends(get_db)
 ):
-    try:
-        association = cruds.link_article_to_restaurant(
-            db, restaurant_id=restaurant_id, article_id=article_id
-        )
-        return association
-    except Exception as e:
-        raise HTTPException(status_code=400, detail=str(e))
+    return await cruds.link_article_to_restaurant(
+        db, restaurant_id=restaurant_id, article_id=article_id
+    )
 
 
-@router.delete("/{restaurant_id}/articles/{article_id}", response_model=dict)
-def delete_link_article_to_restaurant(
-    restaurant_id: int, article_id: int, db: Session = Depends(get_db)
+@router_v1.delete("/{restaurant_id}/articles/{article_id}", response_model=dict)
+async def delete_link_article_to_restaurant(
+    restaurant_id: int, article_id: int, db: AsyncSession = Depends(get_db)
 ):
-    success = cruds.unlink_article_from_restaurant(
+    success = await cruds.unlink_article_from_restaurant(
         db, restaurant_id=restaurant_id, article_id=article_id
     )
     if success:
@@ -97,13 +91,13 @@ def delete_link_article_to_restaurant(
         raise HTTPException(status_code=404, detail="Association not found")
 
 
-@router.put(
+@router_v1.put(
     "/{restaurant_id}/articles/{article_id}", response_model=schemas.ArticleRestaurant
 )
-def update_association(
-    restaurant_id: int, article_id: int, db: Session = Depends(get_db)
+async def update_association(
+    restaurant_id: int, article_id: int, db: AsyncSession = Depends(get_db)
 ):
-    association = cruds.update_article_restaurant_association(
+    association = await cruds.update_article_restaurant_association(
         db, restaurant_id=restaurant_id, article_id=article_id
     )
     if association:

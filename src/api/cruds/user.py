@@ -1,23 +1,31 @@
 from datetime import datetime
-from sqlalchemy.orm import Session
+from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.future import select
 
 import models, schemas
 from security import get_password_hash
 
 
-def get_user(db: Session, user_id: int):
-    return db.query(models.User).filter(models.User.id == user_id).first()
+# ユーザーをIDで取得
+async def get_user(db: AsyncSession, user_id: int):
+    result = await db.execute(select(models.User).filter(models.User.id == user_id))
+    return result.scalars().first()
 
 
-def get_user_by_email(db: Session, email: str):
-    return db.query(models.User).filter(models.User.email == email).first()
+# ユーザーをEメールで取得
+async def get_user_by_email(db: AsyncSession, email: str):
+    result = await db.execute(select(models.User).filter(models.User.email == email))
+    return result.scalars().first()
 
 
-def get_users(db: Session, skip: int = 0, limit: int = 100):
-    return db.query(models.User).offset(skip).limit(limit).all()
+# 複数のユーザーを取得
+async def get_users(db: AsyncSession, skip: int = 0, limit: int = 100):
+    result = await db.execute(select(models.User).offset(skip).limit(limit))
+    return result.scalars().all()
 
 
-def create_user(db: Session, user: schemas.UserCreate):
+# ユーザーの作成
+async def create_user(db: AsyncSession, user: schemas.UserCreate):
     hashed_password = get_password_hash(user.hashed_password)
     db_user = models.User(
         username=user.username,
@@ -28,38 +36,43 @@ def create_user(db: Session, user: schemas.UserCreate):
         updated_at=datetime.now(),
     )
     db.add(db_user)
-    db.commit()
-    db.refresh(db_user)
+    await db.commit()
+    await db.refresh(db_user)
     return db_user
 
 
-def update_user(db: Session, user: schemas.UserCreate, user_id: int):
-    db_user = get_user(db, user_id)
+# ユーザー情報の更新
+async def update_user(db: AsyncSession, user: schemas.UserCreate, user_id: int):
+    db_user = await get_user(db, user_id)
     if db_user:
-        update_data = user.model_dump(exclude_unset=True)
-        if "hashed_password" in update_data:
-            update_data["hashed_password"] = get_password_hash(user.hashed_password)
+        update_data = user.dict(exclude_unset=True)
+        if "password" in update_data:
+            update_data["hashed_password"] = get_password_hash(update_data["password"])
             del update_data["password"]
         for key, value in update_data.items():
             setattr(db_user, key, value)
-        db.commit()
-        db.refresh(db_user)
+        await db.commit()
+        await db.refresh(db_user)
     return db_user
 
 
-def delete_user(db: Session, user_id: int):
-    db_user = get_user(db, user_id)
+# ユーザーの削除
+async def delete_user(db: AsyncSession, user_id: int):
+    db_user = await get_user(db, user_id)
     if db_user:
-        db.delete(db_user)
-        db.commit()
+        await db.delete(db_user)
+        await db.commit()
     return db_user
 
 
-def get_articles_by_user(db: Session, user_id: int, skip: int = 0, limit: int = 100):
-    return (
-        db.query(models.Article)
+# 特定ユーザーの記事を取得
+async def get_articles_by_user(
+    db: AsyncSession, user_id: int, skip: int = 0, limit: int = 100
+):
+    result = await db.execute(
+        select(models.Article)
         .filter(models.Article.author_id == user_id)
         .offset(skip)
         .limit(limit)
-        .all()
     )
+    return result.scalars().all()

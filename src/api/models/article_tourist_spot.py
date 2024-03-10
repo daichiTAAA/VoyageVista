@@ -10,6 +10,3 @@ class ArticleTouristSpot(Base):
     tourist_spot_id = Column(Integer, ForeignKey("tourist_spots.id"), primary_key=True)
     created_at = Column(DateTime)
     updated_at = Column(DateTime)
-
-    # articles = relationship("Article", back_populates="tourist_spots")
-    # tourist_spots = relationship("TouristSpot", back_populates="articles")

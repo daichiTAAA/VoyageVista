@@ -1,5 +1,6 @@
 from sqlalchemy import create_engine, text
 from sqlalchemy.exc import ProgrammingError
+from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
 
@@ -21,14 +22,14 @@ env_info: EnvInfo = get_env_info(EnvInfo)
 
 # データベース名を指定せずに接続するためのURLを作成
 SQLALCHEMY_DATABASE_URL_WITHOUT_DB = (
-    f"postgresql://{env_info.PG_USER}:{env_info.PG_PASSWORD}@{env_info.PG_HOST}"
+    f"postgresql+asyncpg://{env_info.PG_USER}:{env_info.PG_PASSWORD}@{env_info.PG_HOST}"
 )
 
 # データベース名を指定して接続するためのURLを作成
 SQLALCHEMY_DATABASE_URL = f"{SQLALCHEMY_DATABASE_URL_WITHOUT_DB}/{env_info.PG_DATABASE}"
 
 # データベース名を指定せずにエンジンを作成
-db_engine_without_db = create_engine(SQLALCHEMY_DATABASE_URL_WITHOUT_DB)
+# db_engine_without_db = create_engine(SQLALCHEMY_DATABASE_URL_WITHOUT_DB)
 
 # # データベースが存在するかどうかをチェックし、存在しなければ作成
 # with db_engine_without_db.connect() as conn:
@@ -41,8 +42,10 @@ db_engine_without_db = create_engine(SQLALCHEMY_DATABASE_URL_WITHOUT_DB)
 #         print(f"An error occurred: {e}")
 
 # データベース名を指定してエンジンを作成
-db_engine = create_engine(SQLALCHEMY_DATABASE_URL)
+db_engine = create_async_engine(SQLALCHEMY_DATABASE_URL)
 
-SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=db_engine)
+SessionLocal = sessionmaker(
+    autocommit=False, autoflush=False, bind=db_engine, class_=AsyncSession
+)
 
 Base = declarative_base()

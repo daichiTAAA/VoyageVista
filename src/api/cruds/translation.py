@@ -1,73 +1,73 @@
-from sqlalchemy.orm import Session
+from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.future import select
 
 import models, schemas
 
 
-def get_translation(db: Session, translation_id: int):
-    return (
-        db.query(models.Translation)
-        .filter(models.Translation.id == translation_id)
-        .first()
+async def get_translation(db: AsyncSession, translation_id: int):
+    result = await db.execute(
+        select(models.Translation).filter(models.Translation.id == translation_id)
     )
+    return result.scalars().first()
 
 
-def get_translations(db: Session, skip: int = 0, limit: int = 100):
-    return db.query(models.Translation).offset(skip).limit(limit).all()
+async def get_translations(db: AsyncSession, skip: int = 0, limit: int = 100):
+    result = await db.execute(select(models.Translation).offset(skip).limit(limit))
+    return result.scalars().all()
 
 
-def create_translation(
-    db: Session, translation: schemas.TranslationCreate, article_id: int
+async def create_translation(
+    db: AsyncSession, translation: schemas.TranslationCreate, article_id: int
 ):
     db_translation = models.Translation(
         **translation.model_dump(), article_id=article_id
     )
     db.add(db_translation)
-    db.commit()
-    db.refresh(db_translation)
+    await db.commit()
+    await db.refresh(db_translation)
     return db_translation
 
 
-def update_translation(
-    db: Session, translation: schemas.TranslationUpdate, translation_id: int
+async def update_translation(
+    db: AsyncSession, translation: schemas.TranslationUpdate, translation_id: int
 ):
-    db_translation = get_translation(db, translation_id)
+    db_translation = await get_translation(db, translation_id)
     if db_translation:
         update_data = translation.model_dump(exclude_unset=True)
         for key, value in update_data.items():
             setattr(db_translation, key, value)
-        db.commit()
-        db.refresh(db_translation)
+        await db.commit()
+        await db.refresh(db_translation)
     return db_translation
 
 
-def delete_translation(db: Session, translation_id: int):
-    db_translation = get_translation(db, translation_id)
+async def delete_translation(db: AsyncSession, translation_id: int):
+    db_translation = await get_translation(db, translation_id)
     if db_translation:
-        db.delete(db_translation)
-        db.commit()
+        await db.delete(db_translation)
+        await db.commit()
     return db_translation
 
 
-def get_translations_by_article(
-    db: Session, article_id: int, skip: int = 0, limit: int = 100
+async def get_translations_by_article(
+    db: AsyncSession, article_id: int, skip: int = 0, limit: int = 100
 ):
-    return (
-        db.query(models.Translation)
+    result = await db.execute(
+        select(models.Translation)
         .filter(models.Translation.article_id == article_id)
         .offset(skip)
         .limit(limit)
-        .all()
     )
+    return result.scalars().all()
 
 
-def get_translation_by_article_and_language(
-    db: Session, article_id: int, language: str
+async def get_translation_by_article_and_language(
+    db: AsyncSession, article_id: int, language: str
 ):
-    return (
-        db.query(models.Translation)
-        .filter(
+    result = await db.execute(
+        select(models.Translation).filter(
             models.Translation.article_id == article_id,
             models.Translation.language == language,
         )
-        .first()
     )
+    return result.scalars().first()
