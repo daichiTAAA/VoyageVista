@@ -16,6 +16,7 @@ class EnvInfo(BaseModel):
     PG_USER: str = "postgres"
     PG_PASSWORD: str = "postgres"
     PG_DATABASE: str = "japan_tourism_info"
+    LOGGER_CONFIG_PATH: str = "logger.ini"
 
 
 env_info: EnvInfo = get_env_info(EnvInfo)

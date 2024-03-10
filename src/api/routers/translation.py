@@ -5,6 +5,9 @@ from typing import List
 import cruds
 from db import SessionLocal
 from schemas import Translation
+from setup_logger import setup_logger
+
+logger, log_decorator = setup_logger(__name__)
 
 router_v1 = APIRouter(
     prefix="/translations",
@@ -38,6 +41,7 @@ async def read_translations(
 async def read_translation(translation_id: int, db: AsyncSession = Depends(get_db)):
     db_translation = await cruds.get_translation(db, translation_id=translation_id)
     if db_translation is None:
+        logger.error(f"Translation {translation_id} not found")
         raise HTTPException(status_code=404, detail="Translation not found")
     return db_translation
 

@@ -4,6 +4,9 @@ from typing import List
 
 import cruds, schemas
 from db import SessionLocal
+from setup_logger import setup_logger
+
+logger, log_decorator = setup_logger(__name__)
 
 router_v1 = APIRouter(
     prefix="/cultural_insights",
@@ -44,6 +47,7 @@ async def read_cultural_insight(
         db, cultural_insight_id=cultural_insight_id
     )
     if db_cultural_insight is None:
+        logger.error(f"Cultural insight {cultural_insight_id} not found")
         raise HTTPException(status_code=404, detail="Cultural insight not found")
     return db_cultural_insight
 
@@ -58,6 +62,7 @@ async def update_cultural_insight(
         db, cultural_insight_id=cultural_insight_id
     )
     if db_cultural_insight is None:
+        logger.error(f"Cultural insight {cultural_insight_id} not found")
         raise HTTPException(status_code=404, detail="Cultural insight not found")
     return await cruds.update_cultural_insight(
         db=db,
@@ -74,6 +79,7 @@ async def delete_cultural_insight(
         db, cultural_insight_id=cultural_insight_id
     )
     if db_cultural_insight is None:
+        logger.error(f"Cultural insight {cultural_insight_id} not found")
         raise HTTPException(status_code=404, detail="Cultural insight not found")
     return await cruds.delete_cultural_insight(
         db=db, cultural_insight_id=cultural_insight_id

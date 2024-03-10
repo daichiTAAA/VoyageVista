@@ -5,6 +5,9 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 import cruds, schemas
 from db import SessionLocal
+from setup_logger import setup_logger
+
+logger, log_decorator = setup_logger(__name__)
 
 router_v1 = APIRouter(
     prefix="/users",
@@ -25,6 +28,7 @@ async def get_db():
 async def create_user(user: schemas.UserCreate, db: AsyncSession = Depends(get_db)):
     db_user = await cruds.get_user_by_email(db, email=user.email)
     if db_user:
+        logger.error(f"Email {user.email} already registered")
         raise HTTPException(status_code=400, detail="Email already registered")
     return await create_user(db=db, user=user)
 
@@ -41,6 +45,7 @@ async def read_users(
 async def read_user(user_id: int, db: AsyncSession = Depends(get_db)):
     db_user = await cruds.get_user(db, user_id=user_id)
     if db_user is None:
+        logger.error(f"User {user_id} not found")
         raise HTTPException(status_code=404, detail="User not found")
     return db_user
 
@@ -51,6 +56,7 @@ async def update_user(
 ):
     db_user = await cruds.get_user(db, user_id=user_id)
     if db_user is None:
+        logger.error(f"User {user_id} not found")
         raise HTTPException(status_code=404, detail="User not found")
     return await update_user(db=db, user=user, user_id=user_id)
 
@@ -59,6 +65,7 @@ async def update_user(
 async def delete_user(user_id: int, db: AsyncSession = Depends(get_db)):
     db_user = await cruds.get_user(db, user_id=user_id)
     if db_user is None:
+        logger.error(f"User {user_id} not found")
         raise HTTPException(status_code=404, detail="User not found")
     return await delete_user(db=db, user_id=user_id)
 
@@ -69,6 +76,7 @@ async def read_user_articles(
 ):
     db_user = await cruds.get_user(db, user_id=user_id)
     if db_user is None:
+        logger.error(f"User {user_id} not found")
         raise HTTPException(status_code=404, detail="User not found")
     articles = await cruds.get_articles_by_user(
         db=db, user_id=user_id, skip=skip, limit=limit

@@ -4,6 +4,9 @@ from typing import List
 
 import cruds, schemas
 from db import SessionLocal
+from setup_logger import setup_logger
+
+logger, log_decorator = setup_logger(__name__)
 
 router_v1 = APIRouter(
     prefix="/articles",
@@ -36,6 +39,7 @@ async def read_articles(
 async def read_article(article_id: int, db: AsyncSession = Depends(get_db)):
     db_article = await cruds.get_article(db, article_id=article_id)
     if db_article is None:
+        logger.error(f"Article {article_id} not found")
         raise HTTPException(status_code=404, detail="Article not found")
     return db_article
 
@@ -46,6 +50,7 @@ async def update_article(
 ):
     db_article = await cruds.get_article(db, article_id=article_id)
     if db_article is None:
+        logger.error(f"Article {article_id} not found")
         raise HTTPException(status_code=404, detail="Article not found")
     return await cruds.update_article(db=db, article=article, article_id=article_id)
 
@@ -54,6 +59,7 @@ async def update_article(
 async def delete_article(article_id: int, db: AsyncSession = Depends(get_db)):
     db_article = await cruds.get_article(db, article_id=article_id)
     if db_article is None:
+        logger.error(f"Article {article_id} not found")
         raise HTTPException(status_code=404, detail="Article not found")
     return await cruds.delete_article(db=db, article_id=article_id)
 
